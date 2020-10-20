@@ -1,36 +1,34 @@
 import React, {Component} from 'react'
+import { Redirect } from 'react-router-dom'
 import { Form, Icon, Input, Button, message } from 'antd';
 
 import './login.less'
 import logo from '../../assets/images/logo.png'
-import {reqLogin} from '../../api'
+import { reqLogin } from '../../api'
 import memoryUtils from '../../utils/memoryUtils'
 import storageUtils from '../../utils/storageUtils'
 
 const Item = Form.Item;
-const WrapLogin = Form.create()(Login)
 class Login extends Component {
   handleSubmit = (event) => {
-    event.preventDefault();
+    event.preventDefault();                //阻止默认跳转
+    //1.检验数据和收集数据 2.发送异步请求 3.保存响应数据 4.跳转到主页面
     this.props.form.validateFields(async (err, values) => {
       // err没有值，检验成功
       if (!err) {
         // console.log('提交登陆的ajax请求', values)
-        // 请求登陆
         const {username, password} = values
+        // 请求成功或失败，请求成功继续走下面程序，请求失败在ajax代码那里就处理了
         const result = await reqLogin(username, password) // {status: 0, data: user}  {status: 1, msg: 'xxx'}
-        // console.log('请求成功', result)
-        if (result.status===0) {            // 登陆成功
-          // 提示登陆成功
+        // 登录成功或失败
+        if (result.status===0) {            // 登陆成功，1.提示登录成功 2.保存user 3.跳转页面
           message.success('登陆成功')
-          // 保存user
-          const user = result.data
+          const user = result.data          // 保存user
           memoryUtils.user = user           // 保存在内存中
           storageUtils.saveUser(user)       // 保存到local中
-          // 跳转到管理界面 (不需要再回退回到登陆)(push,goback,replace)
-          this.props.history.replace('/')
-        } else { // 登陆失败
-          // 提示错误信息
+          // 跳转到管理界面,不需要再回退回到登陆
+          this.props.history.replace('/')   //goback，replace，push
+        } else {                            // 登陆失败，提示登录错误
           message.error(result.msg)
         }
       } else {
@@ -54,17 +52,23 @@ class Login extends Component {
     // callback('xxxx') // 验证失败, 并指定提示的文本
   }
   render() {
+    //如果用户直接输入xxx/login, 此时如果用户已经登录，则自动跳转到管理界面
+    const user = memoryUtils.user
+    if(user && user._id) {
+      return <Redirect to='/' />
+    }
+    //getFieldDecorator函数作用——验证输入的数据有效性
     const {getFieldDecorator} = this.props.form;
     return (
       <div className='login'>
         <header className="login-header">
-          <img src={logo} alt=""/>
+          <img src={logo} alt="logo"/>
           <h1>后台管理系统</h1>
         </header>
         <section className="login-content">
           <h2>用户登录</h2>
           <Form onSubmit={this.handleSubmit} className="login-form">
-            <Form.Item>
+            <Item>
               {getFieldDecorator('username', {
                 rules: [
                   { required: true, whitespace: true, message: '用户名必须输入' },
@@ -79,7 +83,7 @@ class Login extends Component {
                   placeholder="用户名"
                 />
               )}
-            </Form.Item>
+            </Item>
             <Form.Item>
               {getFieldDecorator('password', {
                 rules: [
@@ -107,4 +111,5 @@ class Login extends Component {
   }
 }
 
+const WrapLogin = Form.create()(Login)
 export default WrapLogin
